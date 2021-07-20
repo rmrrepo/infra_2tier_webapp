@@ -2,7 +2,7 @@ provider "aws" {
     profile = "default"
     region = var.region  
 }
-
+/*
 resource "aws_vpc" "main" {
     cidr_block = var.vpc_cidr
 
@@ -21,18 +21,23 @@ resource "aws_subnet" "public" {
 }
 
 resource "aws_internet_gateway" "gw" {
-  vpc_id = aws_vpc.main.id
+  vpc_id = var.vpcname
 
   tags = {
     Name = "Default-VPC-IGW"
   }
 }
-
+*/
 resource "aws_instance" "linuxbox" {
-    ami = "ami-76d6f519"
+    ami = "ami-0dc8f589abe99f538"
     instance_type = "t2.micro"
     subnet_id = "subnet-3210c178"
     vpc_security_group_ids = ["sg-78886141"]
+    user_data = "${file("install_apache.sh")}"
+
+   tags = {
+    Name = "2tier_instance"
+  }   
 }
 
 # Create a new load balancer
@@ -41,11 +46,13 @@ resource "aws_elb" "elb_2tierapp" {
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
   security_groups = ["sg-78886141"]
 
+/*
   access_logs {
     bucket        = "rmr_2tierapp"
     bucket_prefix = "2tierapp"
     interval      = 60
   }
+*/
 
   listener {
     instance_port     = 8000
@@ -58,7 +65,7 @@ resource "aws_elb" "elb_2tierapp" {
     healthy_threshold   = 2
     unhealthy_threshold = 2
     timeout             = 3
-    target              = "HTTP:8000/"
+    target              = "http:80/index.php"
     interval            = 30
   }
 
@@ -67,7 +74,7 @@ resource "aws_elb" "elb_2tierapp" {
   idle_timeout                = 400
   connection_draining         = true
   connection_draining_timeout = 400
-  user_data = "${file("install_apache.sh")}"
+
   tags = {
     Name = "2tierapp-terraform-elb"
   }

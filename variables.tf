@@ -22,3 +22,10 @@ variable "subnet_public_cidr" {
     default = "10.10.1.0/24"
   
 }
+
+variable "subnetname_public" {
+    description = "subnet name"
+    type    = string
+    default = "subnet-3210c178"
+  
+}
