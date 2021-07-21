@@ -28,6 +28,60 @@ resource "aws_internet_gateway" "gw" {
   }
 }
 */
+
+resource "elb_security_group" "elb_sg" {
+  name        = "elb_sg"
+  description = "Allow elb inbound traffic"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description      = "TLS from VPC"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = {
+    Name = "elb_sg"
+  }
+}
+
+resource "ec2_security_group" "ec2_sg" {
+  name        = "ec2_sg"
+  description = "Allow ec2 inbound traffic"
+  vpc_id      = aws_vpc.main.id
+
+
+  ingress {
+    description      = "TLS from VPC"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    security_groups = [elb_security_group.elb_sg.id]    
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "ec2_sg"
+  }
+}
+
+
 resource "aws_instance" "linuxbox" {
     ami = "ami-0dc8f589abe99f538"
     instance_type = "t2.micro"
@@ -55,7 +109,7 @@ resource "aws_elb" "elb_2tierapp" {
 */
 
   listener {
-    instance_port     = 8000
+    instance_port     = 80
     instance_protocol = "http"
     lb_port           = 80
     lb_protocol       = "http"
