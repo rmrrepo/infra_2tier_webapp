@@ -29,10 +29,10 @@ resource "aws_internet_gateway" "gw" {
 }
 */
 
-resource "elb_security_group" "elb_sg" {
+resource "aws_security_group" "elb_sg" {
   name        = "elb_sg"
   description = "Allow elb inbound traffic"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = var.vpcname
 
   ingress {
     description      = "TLS from VPC"
@@ -47,7 +47,6 @@ resource "elb_security_group" "elb_sg" {
     to_port          = 0
     protocol         = "-1"
     cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
   }
 
   tags = {
@@ -55,10 +54,10 @@ resource "elb_security_group" "elb_sg" {
   }
 }
 
-resource "ec2_security_group" "ec2_sg" {
+resource "aws_security_group" "ec2_sg" {
   name        = "ec2_sg"
   description = "Allow ec2 inbound traffic"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = var.vpcname
 
 
   ingress {
@@ -66,7 +65,7 @@ resource "ec2_security_group" "ec2_sg" {
     from_port        = 80
     to_port          = 80
     protocol         = "tcp"
-    security_groups = [elb_security_group.elb_sg.id]    
+    security_groups = [aws_security_group.elb_sg.id]    
   }
 
   egress {
@@ -86,7 +85,7 @@ resource "aws_instance" "linuxbox" {
     ami = "ami-0dc8f589abe99f538"
     instance_type = "t2.micro"
     subnet_id = "subnet-3210c178"
-    vpc_security_group_ids = ["sg-78886141"]
+    vpc_security_group_ids = [aws_security_group.ec2_sg.id]
     user_data = "${file("install_apache.sh")}"
 
    tags = {
@@ -98,7 +97,7 @@ resource "aws_instance" "linuxbox" {
 resource "aws_elb" "elb_2tierapp" {
   name               = "2tierapp-terraform-elb"
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
-  security_groups = ["sg-78886141"]
+  security_groups = [aws_security_group.elb_sg.id]
 
 /*
   access_logs {
